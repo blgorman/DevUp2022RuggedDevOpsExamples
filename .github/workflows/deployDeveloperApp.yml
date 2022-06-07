@@ -4,6 +4,10 @@ on:
   repository_dispatch:
     types: [deploy-developer-application]
 
+permissions:
+      id-token: write
+      contents: read
+
 env:
   CURRENT_BRANCH: ${{ github.event.client_payload.branch }}
 
@@ -58,10 +62,12 @@ jobs:
         name: .net-app
 
     # Log into Azure
-    - name: 'Login-To-Azure'
+    - name: 'Az CLI login'
       uses: azure/login@v1
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2

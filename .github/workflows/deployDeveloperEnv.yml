@@ -5,6 +5,10 @@ on:
     branches: [ dev ]
   workflow_dispatch:
 
+permissions:
+      id-token: write
+      contents: read
+
 env: 
   CURRENT_BRANCH: ${{ github.event.pull_request.head.ref }}
   
@@ -18,10 +22,12 @@ jobs:
       with:
         ref: ${{ env.CURRENT_BRANCH }}
 
-    # Log into Azure
-    - uses: azure/login@v1
+    - name: 'Az CLI login'
+      uses: azure/login@v1
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         
     # Deploy ARM template
     - name: Run ARM deploy
