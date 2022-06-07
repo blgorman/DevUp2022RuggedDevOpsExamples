@@ -1,0 +1,49 @@
+name: Deploy the volatile dev environment on PR to dev branch
+
+on:
+  pull_request:
+    branches: [ dev ]
+  workflow_dispatch:
+
+permissions:
+      id-token: write
+      contents: read
+
+env: 
+  CURRENT_BRANCH: ${{ github.event.pull_request.head.ref }}
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Checkout code
+    - uses: actions/checkout@v2
+      with:
+        ref: ${{ env.CURRENT_BRANCH }}
+
+    - name: 'Az CLI login'
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        
+    # Deploy ARM template
+    - name: Run ARM deploy
+      uses: azure/arm-deploy@v1
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ secrets.AZURE_RG_NAME }}
+        template: ./azure-deploy-dev-env.json
+        parameters: 
+          webAppName=devuprdo-${{ env.CURRENT_BRANCH }}-dev
+          
+    - name: Trigger Deploy Developer Environment Application
+      if: success()
+      uses: peter-evans/repository-dispatch@v1
+      with:
+        token: ${{ secrets.REPO_GHA_PAT }}
+        repository: ${{ github.repository }}
+        event-type: deploy-developer-application
+        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "branch": "${{ env.CURRENT_BRANCH }}"}'
