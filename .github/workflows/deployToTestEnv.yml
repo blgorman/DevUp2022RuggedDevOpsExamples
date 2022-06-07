@@ -8,6 +8,7 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: simple-web-20220607-blg 
+  AZURE_WEBAPP_SLOT: Test
 
 jobs:
   build-and-deploy:
@@ -35,6 +36,6 @@ jobs:
         uses: azure/webapps-deploy@v2
         with: 
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          slot-name: 'Production'
+          slot-name: ${{ env.AZURE_WEBAPP_SLOT }}
           publish-profile: ${{ secrets.PUBLISH_PROFILE_SIMPLEWEB_TEST }}  
           package: './dotnetcorewebapp' 
