@@ -146,3 +146,13 @@ az webapp config hostname list --resource-group $rg --webapp-name $siteName --qu
 ```
 
 With the public-facing url, you can browse to the site, and it will be up but there will just be a default page showing it's working.
+
+### Create Test, Staging, and QA slots
+
+Create the environment slots for deploying your app through the pipeline
+
+```bash
+az webapp deployment slot create --name $siteName --resource-group $rg --slot 'Staging'
+az webapp deployment slot create --name $siteName --resource-group $rg --slot 'QA'
+az webapp deployment slot create --name $siteName --resource-group $rg --slot 'Test'
+```  
