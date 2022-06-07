@@ -8,6 +8,7 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: <your-app-name-here> 
+  AZURE_WEBAPP_SLOT: <target-slot-name-here>
 
 jobs:
   build-and-deploy:
@@ -35,6 +36,6 @@ jobs:
         uses: azure/webapps-deploy@v2
         with: 
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          slot-name: 'Production'
+          slot-name: ${{ env.AZURE_WEBAPP_SLOT }}
           publish-profile: ${{ secrets.YOUR_APP_PUBLISH_PROFILE_SECRET_HERE }}  
           package: './dotnetcorewebapp' 
