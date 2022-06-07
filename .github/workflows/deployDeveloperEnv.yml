@@ -2,7 +2,7 @@ name: Deploy the volatile dev environment on PR to dev branch
 
 on:
   pull_request:
-    branches: [ develop ]
+    branches: [ dev ]
   workflow_dispatch:
 
 env: 
