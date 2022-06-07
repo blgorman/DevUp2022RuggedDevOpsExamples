@@ -1,4 +1,4 @@
-name: Deploy DN6 Web Ubuntu Agent
+name: Deploy SimpleWeb To Test on merge to dev branch
 
 on:
   push:
