@@ -1,0 +1,225 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "appServiceName": {
+            "defaultValue": "DeveloperAppServices-MVC",
+            "type": "string",
+            "minLength": 1
+        },
+        "appServiceSkuName": {
+            "type": "string",
+            "defaultValue": "F1",
+            "allowedValues": [
+                "F1"
+            ],
+            "metadata": {
+                "description": "A free tier app service plan"
+            }
+        },
+        "webAppName": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "The name of the website - must be passed in"
+            }
+        },
+        "sqlAdministratorLogin": {
+            "type": "string",
+            "defaultValue": "simplewebdbuser",
+            "metadata": {
+                "description": "The administrator username of the SQL Server."
+        }
+        },
+        "sqlAdministratorLoginPassword": {
+            "type": "securestring",
+            "defaultValue": "swu@Temp#987!",
+            "metadata": {
+                "description": "The administrator password of the SQL Server."
+        }
+        },
+        "transparentDataEncryption": {
+            "type": "string",
+            "allowedValues": [
+                "Enabled",
+                "Disabled"
+            ],
+            "defaultValue": "Enabled",
+            "metadata": {
+                "description": "Enable or disable Transparent Data Encryption (TDE) for the database."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        }
+    },
+    "variables": {
+        "databaseName": "volatiledevweb",
+        "sqlServerName": "[concat(variables('databaseName'), '-db-', uniqueString(subscription().id, resourceGroup().id))]",
+        "databaseEdition": "Basic",
+        "databaseCollation": "SQL_Latin1_General_CP1_CI_AS",
+        "databaseServiceObjectiveName": "Basic",
+        "connectionString": "[concat('Server=tcp:', variables('sqlServerName')
+                                    , '.database.windows.net,1433;Initial Catalog='
+                                    , variables('databaseName'), ';Persist Security Info=False;User ID='
+                                    , parameters('sqlAdministratorLogin'), ';Password='
+                                    , parameters('sqlAdministratorLoginPassword') 
+                                    , ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+                                )]",
+        "appInsightsName": "[format('AppInsights{0}', parameters('webAppName'))]"
+    },
+    "resources": [
+        {
+            "name": "[variables('sqlServerName')]",
+            "type": "Microsoft.Sql/servers",
+            "apiVersion": "2020-02-02-preview",
+            "location": "[parameters('location')]",
+            "tags": {
+                "displayName": "SqlServer"
+            },
+            "properties": {
+                "administratorLogin": "[parameters('sqlAdministratorLogin')]",
+                "administratorLoginPassword": "[parameters('sqlAdministratorLoginPassword')]",
+                "version": "12.0"
+            },
+            "resources": [
+                {
+                    "name": "[variables('databaseName')]",
+                    "type": "databases",
+                    "apiVersion": "2020-02-02-preview",
+                    "location": "[parameters('location')]",
+                    "tags": {
+                        "displayName": "Database"
+                    },
+                    "properties": {
+                        "edition": "[variables('databaseEdition')]",
+                        "collation": "[variables('databaseCollation')]",
+                        "requestedServiceObjectiveName": "[variables('databaseServiceObjectiveName')]"
+                    },
+                    "dependsOn": [
+                        "[variables('sqlServerName')]"
+                    ],
+                    "resources": [
+                        {
+                            "comments": "Transparent Data Encryption",
+                            "name": "current",
+                            "type": "transparentDataEncryption",
+                            "apiVersion": "2017-03-01-preview",
+                            "properties": {
+                                "status": "[parameters('transparentDataEncryption')]"
+                            },
+                            "dependsOn": [
+                                "[variables('databaseName')]"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "AllowAllMicrosoftAzureIps",
+                    "type": "firewallrules",
+                    "apiVersion": "2020-02-02-preview",
+                    "location": "[parameters('location')]",
+                    "properties": {
+                        "endIpAddress": "0.0.0.0",
+                        "startIpAddress": "0.0.0.0"
+                    },
+                    "dependsOn": [
+                        "[variables('sqlServerName')]"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Insights/components",
+            "apiVersion": "2020-02-02",
+            "name": "[variables('appInsightsName')]",
+            "location": "[parameters('location')]",
+            "tags": {
+                "[format('hidden-link:{0}', resourceId('Microsoft.Web/sites', parameters('webAppName')))]": "Resource",
+                "displayName": "AppInsightsComponent"
+            },
+            "kind": "web",
+            "properties": {
+                "Application_Type": "web",
+                "applicationId": "[variables('appInsightsName')]"
+            }
+        },
+        {
+            "name": "[parameters('appServiceName')]",
+            "type": "Microsoft.Web/serverfarms",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-08-01",
+            "sku": {
+                "name": "[parameters('appServiceSkuName')]"
+            },
+            "dependsOn": [],
+            "tags": {
+                "displayName": "appService"
+            },
+            "properties": {
+                "name": "[parameters('appServiceName')]",
+                "numberOfWorkers": 1
+            }
+        },
+        {
+            "name": "[parameters('webAppName')]",
+            "type": "Microsoft.Web/sites",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-08-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', parameters('appServiceName'))]",
+                "[variables('databaseName')]",
+                "[resourceId('Microsoft.Insights/components/', variables('appInsightsName'))]"
+            ],
+            "tags": {
+                "[concat('hidden-related:', resourceId('Microsoft.Web/serverfarms', parameters('appServiceName')))]": "Resource",
+                "displayName": "webApp"
+            },
+            "properties": {
+                "name": "[parameters('webAppName')]",
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServiceName'))]",
+                "siteConfig": {
+                    "netFrameworkVersion": "v6.0",
+                    "connectionStrings": [
+                        {
+                            "name": "DefaultConnection",
+                            "connectionString": "[variables('connectionString')]",
+                            "type": 1 
+                        }
+                    ]
+                }
+                
+            },
+            "resources": [
+                {
+					"name": "appsettings",
+					"type": "config",
+					"apiVersion": "2018-11-01",
+					"dependsOn": [
+						"[resourceId('Microsoft.Web/sites', parameters('webAppName'))]",
+						"[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+						"Microsoft.ApplicationInsights.AzureWebSites"
+					],
+					"properties": {
+						"APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2014-04-01').InstrumentationKey]"
+					}
+				},
+				{
+					"apiVersion": "2018-11-01",
+					"name": "Microsoft.ApplicationInsights.AzureWebSites",
+					"type": "siteextensions",
+					"dependsOn": [
+						"[resourceId('Microsoft.Web/Sites', parameters('webAppName'))]"
+					],
+					"properties": {}
+				}
+            ]
+        }
+        
+    ],
+    "outputs": {}
+}

@@ -8,24 +8,36 @@ We are not responsible for anything you do with this code.
 
 ## Set Up the solution
 
-You will need to add your Application insights at Azure and you will need to wire up the Instrumentation connection string.
+For DevOps, you need an S1 App service with three additional slots to simulate the environment.
 
-Additionally, you will need SQL Developer locally, then you will need to do some configuration and create and wire up the SQLAzure at Azure.
+You then need a backing database that you can leverage from all of the environments (it's not part of the demo, but needed for the app and additional discussion around migrations, etc).  
 
-## Notes
+You will create deployment yaml files for
 
-Additional Thoughts
+- Staging       [merge to main]
+- QA            [pr to main]
+- Test          [merge to dev]
+- Developer     [pr to dev - volatile deployment]
 
-### YAML
+Before running the live demo, I set up everything except the Staging deployment.  I demonstrate getting that from Azure and then updating it to match the others.
+
+## Set up your secrets
+
+For DevOps, you need a lot of secrets
+
+- Publish profiles for each environment
+- Azure Credentials generated 
+- GitHub PAT with workflow permissions
+- Azure Subscription Id
+- Azure Resource Group Name
+- SonarCloud Token (static code scanning)
+
+## YAML
 
 Use the sample YAML at your discretion.
 
-You will want to update your user secret to map correctly for your publish profile and you will want to update the name of your azure web app
+You will want to update your user secret to map correctly for your publish profile and you will want to update the name of your azure web app and slot for each environment deployment.
 
-### Developer Secrets
+## Add additional security scanning and tools
 
-As you develop the solution, do not store your connection strings in the appsettings.json file.
-
-Instead, put them in the user secrets.
-
-You will likely want a separate instance of application insights for your developer from your web/slot in production in the real world.  You could use the same one for demo/learning purposes.
+Use additional YAML files to add scanning and tools for your repository
