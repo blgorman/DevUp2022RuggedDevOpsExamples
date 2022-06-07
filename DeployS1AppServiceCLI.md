@@ -156,3 +156,6 @@ az webapp deployment slot create --name $siteName --resource-group $rg --slot 'S
 az webapp deployment slot create --name $siteName --resource-group $rg --slot 'QA'
 az webapp deployment slot create --name $siteName --resource-group $rg --slot 'Test'
 ```  
+
+Create the database server and simplest db possible
+Add the connection information to each of the slots to share the simple backing db.
